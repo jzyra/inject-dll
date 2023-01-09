@@ -1,6 +1,7 @@
 # inject-dll
 This tool allows you to inject a DLL into a running Windows process.
-It is then possible to execute code in this process and to set up hooks on the native functions of the Windows API.
+Normally, it bypass all static antivirus scans.
+It is then possible to execute code in this process and set up hooks on the native functions of the Windows API.
 
 # Build
 
