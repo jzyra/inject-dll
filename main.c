@@ -9,7 +9,6 @@
  *
  */
 #include <stdio.h>
-#include <stdlib.h>
 #include <windows.h>
 
 #define KEY 0xaa
@@ -220,7 +219,7 @@ void inject_dll(const char *path, const DWORD pid) {
 int main(const int argc, const char *argv[])
 {
   DWORD pid = 0;
-  char path[_MAX_PATH];
+  char path[MAX_PATH];
   get_args(argc, argv, path, &pid);
   inject_dll(path, pid);
   return 0;
