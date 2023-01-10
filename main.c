@@ -199,6 +199,7 @@ void inject_dll(const char *path, const DWORD pid) {
   free(writeprocessmemory_name);
   free(createremotethread_name);
   free(loadlibrarya_name);
+  free(closehandle_name);
 }
 
 /**
