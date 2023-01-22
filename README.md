@@ -7,7 +7,7 @@ It is then possible to execute code in this process and set up hooks on the nati
 
 For build this tool for Windows, you can use MinGW.
 
-    gcc.exe main.c -o inject-dll.exe
+    gcc.exe -O2 main.c -o inject-dll.exe
 
 # Usage
 
